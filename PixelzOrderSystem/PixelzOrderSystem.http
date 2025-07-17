@@ -1,0 +1,6 @@
+@PixelzOrderSystem_HostAddress = http://localhost:5089
+
+GET {{PixelzOrderSystem_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
