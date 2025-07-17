@@ -1,16 +1,19 @@
-using System;
-using System.Linq;
+using FastEndpoints;
+using FastEndpoints.Swagger;
 using FluentValidation;
 using MediatR;
 using MediatR.Extensions.FluentValidation.AspNetCore;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using PixelzOrderSystem.Infrastructure.Database;
-using PixelzOrderSystem.Infrastructure.Repositories.Orders;
+using PixelzOrderSystem.Shared.Background;
 using PixelzOrderSystem.Shared.Common;
+using PixelzOrderSystem.Shared.Database;
+using PixelzOrderSystem.Shared.Repositories.Customers;
+using PixelzOrderSystem.Shared.Repositories.OrderProcessing;
+using PixelzOrderSystem.Shared.Repositories.Orders;
+using PixelzOrderSystem.Shared.Services.Emails;
+using PixelzOrderSystem.Shared.Services.Invoices;
+using PixelzOrderSystem.Shared.Services.Payments;
+using PixelzOrderSystem.Shared.Services.Production;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,7 +31,33 @@ builder.Services.AddMediatR(cfg => {
 
 builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
+builder.Services.AddFastEndpoints(options =>
+{
+    options.IncludeAbstractValidators = true;
+})
+.SwaggerDocument(o => o.DocumentSettings = s =>
+{
+    s.Title = "Pixelz Order System API";
+    s.Version = "v1.0";
+});
+
+builder.Services.AddHttpContextAccessor();
+
+// Đăng ký các repository
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IOrderProcessingRepository, OrderProcessingRepository>();
+
+// Đăng ký các service mock để sử dụng trong quá trình phát triển
+builder.Services.AddScoped<IPaymentService, MockPaymentService>();
+builder.Services.AddScoped<IProductionService, MockProductionService>();
+builder.Services.AddScoped<IEmailService, MockEmailService>();
+builder.Services.AddScoped<IInvoiceService, MockInvoiceService>();
+
+// Đăng ký job để xử lý các domain event, retry các event không thành công
+builder.Services.AddHostedService<DomainEventProcessor>();
+
+builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
@@ -40,30 +69,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseFastEndpoints(o =>
+{
+    o.Endpoints.RoutePrefix = "api";
+}).UseSwaggerGen();
+
 app.UseHttpsRedirection();
 
-var summaries = new[]
+// Seeding sample data if the database is empty
+using (var scope = app.Services.CreateScope())
 {
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast");
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await DbSeeder.SeedSampleDataAsync(dbContext);
+}
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

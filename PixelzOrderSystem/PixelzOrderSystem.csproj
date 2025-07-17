@@ -7,21 +7,23 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FastEndpoints" Version="6.2.0" />
+        <PackageReference Include="FastEndpoints.Swagger" Version="6.2.0" />
+        <PackageReference Include="JsonConverter.Newtonsoft.Json" Version="0.7.2" />
         <PackageReference Include="MediatR" Version="13.0.0" />
         <PackageReference Include="MediatR.Extensions.FluentValidation.AspNetCore" Version="6.0.0" />
         <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.7">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.7" />
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="EventHandlers\" />
-      <Folder Include="Features\CheckoutOrder\" />
-      <Folder Include="Features\GetOrderById\" />
-      <Folder Include="Features\SearchOrders\" />
-      <Folder Include="Infrastructure\Background\" />
       <Folder Include="obj\Debug\net9.0\" />
-      <Folder Include="Shared\Helper\" />
     </ItemGroup>
 
 </Project>
